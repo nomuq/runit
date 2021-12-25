@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
-	"net/http"
+	"net/url"
 	"syscall"
 
 	"github.com/labstack/echo/v4"
@@ -70,10 +70,21 @@ func ReverseProxy(host string, proxy string) *Host {
 	e.Use(middleware.Recover())
 	e.Use(middleware.Logger())
 
-	e.Any("/*", func(c echo.Context) (err error) {
-		c.Redirect(http.StatusFound, proxy)
-		return
-	})
+	// e.Any("/*", func(c echo.Context) (err error) {
+	// 	c.Redirect(http.StatusFound, proxy)
+	// 	return
+	// })
+
+	url, err := url.Parse(proxy)
+	if err != nil {
+		e.Logger.Fatal(err)
+	}
+
+	e.Use(middleware.Proxy(middleware.NewRoundRobinBalancer([]*middleware.ProxyTarget{
+		{
+			URL: url,
+		},
+	})))
 
 	return &Host{
 		Echo: e,
