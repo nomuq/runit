@@ -22,7 +22,7 @@ func main() {
 	hosts := map[string]*Host{}
 
 	// Reverse proxy
-	hosts["essentiel.dev"] = ReverseProxy("essentiel.dev", "http://localhost:1203")
+	hosts["essentiel.dev"] = ReverseProxy("essentiel.dev", "http://localhost:1323")
 	hosts["localhost"] = ReverseProxy("localhost", "http://localhost:8080")
 
 	e := echo.New()
