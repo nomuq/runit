@@ -81,7 +81,7 @@ func ReverseProxy(host string, proxy string) *Host {
 func Serve() error {
 	socketpath := "/tmp/runit"
 	// carry on with your socket creation:
-	addr, err := net.ResolveUnixAddr("unixgram", socketpath)
+	addr, err := net.ResolveUnixAddr("unix", socketpath)
 	if err != nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func Serve() error {
 	}
 
 	// carry on with socket bind()
-	conn, err := net.ListenUnixgram("unixgram", addr)
+	conn, err := net.ListenUnixgram("unix", addr)
 	if err != nil {
 		return err
 	}
