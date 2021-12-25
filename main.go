@@ -39,7 +39,7 @@ func main() {
 		res := c.Response()
 
 		host := hosts[req.Host]
-		e.Logger.Info(req.Host)
+		fmt.Println(req.Host)
 
 		if host == nil {
 			return echo.ErrNotFound
@@ -50,11 +50,11 @@ func main() {
 		return err
 	})
 	go func() {
-		e.Start(":80")
+		e.Logger.Fatal(e.Start(":80"))
 	}()
 
 	go func() {
-		e.StartAutoTLS(":443")
+		e.Logger.Fatal(e.StartAutoTLS(":443"))
 	}()
 	// e.Logger.Fatal(e.Start(":80"))
 	// e.Logger.Fatal(e.StartAutoTLS(":443"))
