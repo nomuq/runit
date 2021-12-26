@@ -1,11 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/url"
 	"syscall"
+	"time"
 
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"golang.org/x/crypto/acme/autocert"
@@ -17,13 +20,48 @@ type (
 	}
 )
 
+func dockerx() {
+	client, err := docker.NewClientFromEnv()
+	if err != nil {
+		panic(err)
+	}
+
+	containers, err := client.ListContainers(docker.ListContainersOptions{
+		All: true,
+	})
+	if err != nil {
+		panic(err)
+	}
+	for _, container := range containers {
+		data, err := json.Marshal(container)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(string(data))
+	}
+
+	return
+
+	imgs, err := client.ListImages(docker.ListImagesOptions{All: false})
+	if err != nil {
+		panic(err)
+	}
+	for _, img := range imgs {
+		fmt.Println("ID: ", img.ID)
+		fmt.Println("RepoTags: ", img.RepoTags)
+		fmt.Println("Created: ", img.Created)
+		fmt.Println("Size: ", img.Size)
+		fmt.Println("VirtualSize: ", img.VirtualSize)
+		fmt.Println("ParentId: ", img.ParentID)
+	}
+}
+
 func main() {
 	// Hosts
 	hosts := map[string]*Host{}
 
 	// Reverse proxy
 	hosts["essentiel.dev"] = ReverseProxy("essentiel.dev", "http://localhost:1323")
-	hosts["localhost"] = ReverseProxy("localhost", "http://localhost:8080")
 
 	e := echo.New()
 	e.HideBanner = true
@@ -33,6 +71,12 @@ func main() {
 	}
 
 	e.AutoTLSManager.Cache = autocert.DirCache("/var/www/.cache")
+
+	go func(hosts map[string]*Host) {
+		time.Sleep(time.Second * 50)
+		hosts["localhost"] = ReverseProxy("localhost", "http://localhost:8080")
+		fmt.Println("added localhost")
+	}(hosts)
 
 	e.Any("/*", func(c echo.Context) (err error) {
 		req := c.Request()
