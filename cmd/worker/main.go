@@ -44,7 +44,7 @@ func main() {
 			logrus.Debugln("Starting gRPC server")
 			server := grpc.NewServer()
 
-			logrus.Debugln("Server is listening on", internal.SocketAddress)
+			logrus.Debugln("gRPC Server is listening on", internal.SocketAddress)
 			return server.Serve(listener)
 		},
 	}
