@@ -3,40 +3,48 @@ package main
 import (
 	"net"
 	"os"
+	"runit/internal"
 
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	"google.golang.org/grpc"
 )
 
-const (
-	protocol = "unix"
-	sockAddr = "/tmp/runit.sock"
-)
-
 func main() {
 	app := &cli.App{
 		Name:  "runit",
 		Usage: "run docker containers on remote hosts with ease",
-		Flags: []cli.Flag{},
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:    "debug",
+				Aliases: []string{"d"},
+				Usage:   "enable debug mode",
+				Value:   false,
+			},
+		},
 		Action: func(c *cli.Context) error {
-			logrus.Println("boom! I say!")
+			// if debug mode is enabled, set log level to debug
+			if c.Bool("debug") {
+				logrus.SetLevel(logrus.DebugLevel)
+			}
 
-			// crate unix socket server
-
-			if _, err := os.Stat(sockAddr); err == nil {
-				if err := os.RemoveAll(sockAddr); err != nil {
+			logrus.Debugln("Remove socket file")
+			if _, err := os.Stat(internal.SocketAddress); err == nil {
+				if err := os.RemoveAll(internal.SocketAddress); err != nil {
 					return err
 				}
 			}
 
-			listener, err := net.Listen(protocol, sockAddr)
+			logrus.Debugln("Creating socket listener")
+			listener, err := net.Listen(internal.Protocol, internal.SocketAddress)
 			if err != nil {
 				return err
 			}
 
+			logrus.Debugln("Starting gRPC server")
 			server := grpc.NewServer()
 
+			logrus.Debugln("Server is listening on", internal.SocketAddress)
 			return server.Serve(listener)
 		},
 	}
@@ -44,20 +52,5 @@ func main() {
 	err := app.Run(os.Args)
 	if err != nil {
 		logrus.Fatal(err)
-	}
-}
-
-func handleConnection(conn net.Conn) {
-	defer conn.Close()
-
-	buf := make([]byte, 1024)
-
-	for {
-		n, err := conn.Read(buf)
-		if err != nil {
-			return
-		}
-
-		logrus.Println(string(buf[:n]))
 	}
 }
