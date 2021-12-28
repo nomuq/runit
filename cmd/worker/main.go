@@ -4,6 +4,7 @@ import (
 	"net"
 	"os"
 	"runit/internal"
+	"runit/store"
 
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -27,6 +28,15 @@ func main() {
 			if c.Bool("debug") {
 				logrus.SetLevel(logrus.DebugLevel)
 			}
+
+			// open database connection
+			store, err := store.NewStore()
+			if err != nil {
+				return err
+			}
+
+			// auto migrate database
+			store.AutoMigrate()
 
 			logrus.Debugln("Remove socket file")
 			if _, err := os.Stat(internal.SocketAddress); err == nil {
