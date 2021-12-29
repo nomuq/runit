@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "runit/proto";
+
+message DeployRequest {
+   
+    string name = 1;
+
+    // Git Repository Configuration
+    string repository = 2;
+    string branch = 3;
+
+    // Docker Configuration
+    string dockerfile = 4;
+    repeated string env = 5;
+    repeated string volumes = 6;
+    repeated string links = 7;
+    repeated string ports = 8;
+}
+
+message DeployResponse {}
+
+service Runit {
+  rpc Deploy(DeployRequest) returns (stream DeployResponse);
+}

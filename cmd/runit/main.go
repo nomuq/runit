@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net"
 	"os"
 	"runit/internal"
+	"runit/internal/proto"
 
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -24,34 +26,115 @@ func main() {
 				Value:   false,
 			},
 		},
-		Action: func(c *cli.Context) error {
+		Commands: []*cli.Command{
+			{
+				Name: "init",
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:    "debug",
+						Aliases: []string{"d"},
+						Usage:   "enable debug mode",
+						Value:   false,
+					},
+				},
+				Action: func(c *cli.Context) error {
+					if c.Bool("debug") {
+						logrus.SetLevel(logrus.DebugLevel)
+					}
 
-			// if debug mode is enabled, set log level to debug
-			if c.Bool("debug") {
-				logrus.SetLevel(logrus.DebugLevel)
-			}
+					config := proto.DeployRequest{
+						Name:       "",
+						Repository: "",
+						Branch:     "",
+						Dockerfile: "",
+						Ports: []string{
+							"8080",
+						},
+					}
+					json, err := json.MarshalIndent(config, "", "  ")
+					if err != nil {
+						return err
+					}
+					// config := &internal.Config{}
 
-			logrus.Debugln("Connecting to remote host via SSH")
-			sshclient := internal.NewSSHClient("localhost:22", "satishbabariya")
-			client, err := sshclient.ConnectWithPassword("password")
-			if err != nil {
-				return err
-			}
+					// err := config.Prompt()
+					// if err != nil {
+					// 	return err
+					// }
 
-			dialer := func(ctx context.Context, addr string) (net.Conn, error) {
-				// return net.Dial(protocol, addr)
-				return client.Dial(internal.Protocol, addr)
-			}
+					// json, err := config.ToJSON()
+					// if err != nil {
+					// 	return err
+					// }
 
-			logrus.Debugln("Creating gRPC client")
-			conn, err := grpc.Dial(internal.SocketAddress, grpc.WithInsecure(), grpc.WithContextDialer(dialer))
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer conn.Close()
+					f, err := os.Create("runit.json")
+					if err != nil {
+						return err
+					}
 
-			logrus.Debugln("Connected to remote host via gRPC")
-			return nil
+					_, err = f.Write(json)
+					if err != nil {
+						return err
+					}
+
+					logrus.Infoln("runit.json created")
+
+					return nil
+				},
+			},
+
+			{
+				Name: "deploy",
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:    "debug",
+						Aliases: []string{"d"},
+						Usage:   "enable debug mode",
+						Value:   false,
+					},
+					&cli.StringFlag{
+						Name:    "config",
+						Aliases: []string{"c"},
+						Usage:   "config file path",
+						Value:   "runit.json",
+					},
+				},
+				Action: func(c *cli.Context) error {
+
+					// if debug mode is enabled, set log level to debug
+					if c.Bool("debug") {
+						logrus.SetLevel(logrus.DebugLevel)
+					}
+
+					// load config
+					// config, err := internal.LoadConfig(c.String("config"))
+					// if err != nil {
+					// 	return err
+					// }
+
+					logrus.Debugln("Connecting to remote host via SSH")
+					sshclient := internal.NewSSHClient("localhost:22", "satishbabariya")
+					client, err := sshclient.ConnectWithPassword("password")
+					if err != nil {
+						return err
+					}
+
+					dialer := func(ctx context.Context, addr string) (net.Conn, error) {
+						// return net.Dial(protocol, addr)
+						return client.Dial(internal.Protocol, addr)
+					}
+
+					logrus.Debugln("Creating gRPC client")
+					conn, err := grpc.Dial(internal.SocketAddress, grpc.WithInsecure(), grpc.WithContextDialer(dialer))
+					if err != nil {
+						log.Fatal(err)
+					}
+					defer conn.Close()
+
+					logrus.Debugln("Connected to remote host via gRPC")
+					return nil
+				},
+			},
 		},
 	}
 
